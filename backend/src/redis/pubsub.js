@@ -1,7 +1,6 @@
 import { createClient } from "redis";
 import config from "../config/config.js";
-import { clients } from "../index.js";
-
+import { clients, broadcastFun } from "../index.js";
 
 export const sub=await createClient({url:config.REDIS_URL})
     .on("error", (err)=>console.log("redis pub error",err))

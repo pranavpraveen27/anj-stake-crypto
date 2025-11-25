@@ -11,5 +11,5 @@ dotenv.config({path:path.resolve(__dirname, "./../../.env")});
 export default {
     REDIS_URL:process.env.REDIS_URL,
     PORT:process.env.PORT,
-    
+    MONGO_URI:process.env.MONGO_URI
 }

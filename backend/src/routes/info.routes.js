@@ -1,4 +1,4 @@
-// src/routes/info.routes.js
+
 import { Router } from "express";
 import {
   getMatches,
@@ -8,7 +8,7 @@ import {
   getOpenOrders,
   getWallet,
   deposit,
-} from "../controllers/info.controller.js"; // ensure exact controller file name
+} from "../controllers/info.controller.js"; 
 
 const router = Router();
 

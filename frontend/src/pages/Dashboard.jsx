@@ -24,16 +24,15 @@ export default function Dashboard() {
     };
     return () => ws.close();
   }, []);
- 
-  useEffect(() => {
-  function listener(e) {
-    const { detail } = e;
-    if (detail.type === "wallet-update") fetchWallet();
-  }
-  window.addEventListener("ws-message", listener);
-  return () => window.removeEventListener("ws-message", listener);
-}, []);
 
+  useEffect(() => {
+    function listener(e) {
+      const { detail } = e;
+      if (detail.type === "wallet-update") fetchWallet();
+    }
+    window.addEventListener("ws-message", listener);
+    return () => window.removeEventListener("ws-message", listener);
+  }, []);
 
   async function fetchAll() {
     try {
@@ -65,24 +64,35 @@ export default function Dashboard() {
           <div className="flex gap-6">
             <div>
               <div className="text-sm text-gray-500">Liability</div>
-              <div className="text-xl font-bold">{(summary?.liability ?? 0).toFixed(2)}</div>
+              <div className="text-xl font-bold">
+                {(summary?.liability ?? 0).toFixed(2)}
+              </div>
             </div>
 
             <div>
               <div className="text-sm text-gray-500">Total Offers</div>
-              <div className="text-xl font-bold">{summary?.totalOffers ?? 0}</div>
+              <div className="text-xl font-bold">
+                {summary?.totalOffers ?? 0}
+              </div>
             </div>
 
             <div>
               <div className="text-sm text-gray-500">Matches</div>
-              <div className="text-xl font-bold">{summary?.matchesCount ?? 0}</div>
+              <div className="text-xl font-bold">
+                {summary?.matchesCount ?? 0}
+              </div>
             </div>
 
             <div>
               <div className="text-sm text-gray-500">Top odds</div>
               <div className="flex gap-2">
-                {summary?.topOdds?.map(o => (
-                  <div key={o} className="px-2 py-1 bg-gray-100 rounded text-sm">{o}</div>
+                {summary?.topOdds?.map((o) => (
+                  <div
+                    key={o}
+                    className="px-2 py-1 bg-gray-100 rounded text-sm"
+                  >
+                    {o}
+                  </div>
                 ))}
               </div>
             </div>
@@ -92,13 +102,16 @@ export default function Dashboard() {
 
           <h4 className="font-medium mb-2">Top of Book</h4>
           <div className="grid grid-cols-3 gap-2">
-            {orderbook.map(bucket => (
+            {orderbook.map((bucket) => (
               <div key={bucket.odds} className="p-2 border rounded">
                 <div className="text-sm text-gray-500">Odds</div>
                 <div className="font-bold text-lg">{bucket.odds}</div>
                 <div className="mt-2 text-sm">
-                  {bucket.offers.slice(0,4).map(o => (
-                    <div key={o.offerId} className="flex justify-between text-xs border-b py-1">
+                  {bucket.offers.slice(0, 4).map((o) => (
+                    <div
+                      key={o.offerId}
+                      className="flex justify-between text-xs border-b py-1"
+                    >
                       <div>{o.layerId}</div>
                       <div>{Number(o.remaining).toFixed(2)}</div>
                     </div>
@@ -112,14 +125,25 @@ export default function Dashboard() {
         <div className="p-4 bg-white rounded shadow">
           <h3 className="font-semibold mb-2">Recent Matches</h3>
           <div className="space-y-2">
-            {matches.length === 0 && <div className="text-sm text-gray-500">No matches yet</div>}
-            {matches.map(m => (
-              <div key={m._id || `${m.backerId}-${m.layerId}-${m.stake}`} className="flex justify-between items-center">
+            {matches.length === 0 && (
+              <div className="text-sm text-gray-500">No matches yet</div>
+            )}
+            {matches.map((m) => (
+              <div
+                key={m._id || `${m.backerId}-${m.layerId}-${m.stake}`}
+                className="flex justify-between items-center"
+              >
                 <div>
-                  <div className="text-sm font-medium">{m.backerId} → {m.layerId}</div>
-                  <div className="text-xs text-gray-500">{m.stake}@{m.odds}</div>
+                  <div className="text-sm font-medium">
+                    {m.backerId} → {m.layerId}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {m.stake}@{m.odds}
+                  </div>
                 </div>
-                <div className="text-sm text-green-600 font-bold">{(m.stake * m.odds).toFixed(2)}</div>
+                <div className="text-sm text-green-600 font-bold">
+                  {(m.stake * m.odds).toFixed(2)}
+                </div>
               </div>
             ))}
           </div>

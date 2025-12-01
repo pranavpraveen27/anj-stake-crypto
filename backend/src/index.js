@@ -1,4 +1,4 @@
-// src/index.js
+
 import config from "./config/config.js";
 import express from "express";
 import http from "http";
@@ -41,9 +41,6 @@ export function broadcastFun(data) {
   }
 }
 
-/* ----------------------------------------
-      WEBSOCKET
------------------------------------------ */
 const wss = new WebSocketServer({ server });
 
 wss.on("connection", (ws) => {
@@ -54,7 +51,6 @@ wss.on("connection", (ws) => {
   ws.on("message", (raw) => {
     try {
       const msg = JSON.parse(raw.toString());
-      // If needed you can handle client commands here
     } catch (e) {
       console.error("WS invalid JSON:", e);
     }
@@ -63,22 +59,13 @@ wss.on("connection", (ws) => {
   ws.on("close", () => clients.delete(ws));
 });
 
-/* ----------------------------------------
-      ROUTES
------------------------------------------ */
 app.use("/markets", marketRoutes);
 app.use("/api", infoRouter);
 
-/* ----------------------------------------
-      REDIS + ENGINE
------------------------------------------ */
 await connectRedis();
 await hydrateMarkets(["m1"]);
 await startSubscriber();
 
-/* ----------------------------------------
-      START SERVER
------------------------------------------ */
 server.listen(config.PORT, () =>
   console.log(`Backend running at http://localhost:${config.PORT}`)
 );

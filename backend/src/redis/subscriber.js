@@ -1,4 +1,4 @@
-// src/redis/subscriber.js
+
 import { createClient } from "redis";
 import { broadcastFun } from "../index.js";
 import { hydrateMarkets } from "../engine/hydrate.js";
@@ -12,9 +12,6 @@ sub.on("error", (err) => console.error("Redis SUB error:", err));
 export async function startSubscriber() {
   await sub.connect();
 
-  /* ----------------------------------------
-        ORDERBOOK UPDATES
-  ----------------------------------------- */
   await sub.subscribe("orderbook-update", async (raw) => {
     try {
       const msg = JSON.parse(raw);
@@ -24,9 +21,6 @@ export async function startSubscriber() {
     }
   });
 
-  /* ----------------------------------------
-        MATCH UPDATES
-  ----------------------------------------- */
   await sub.subscribe("match-update", async (raw) => {
     try {
       const msg = JSON.parse(raw);
@@ -36,9 +30,6 @@ export async function startSubscriber() {
     }
   });
 
-  /* ----------------------------------------
-        WALLET UPDATES
-  ----------------------------------------- */
   await sub.subscribe("wallet-update", async (raw) => {
     try {
       const msg = JSON.parse(raw);
@@ -48,9 +39,6 @@ export async function startSubscriber() {
     }
   });
 
-  /* ----------------------------------------
-        ENGINE COMMANDS (rehydrate)
-  ----------------------------------------- */
   await sub.subscribe("engine-cmd", async (raw) => {
     try {
       const data = JSON.parse(raw);

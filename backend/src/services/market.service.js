@@ -1,4 +1,4 @@
-// src/services/market.service.js
+
 import Match from "../mongo/match.js";
 import Offer from "../mongo/offer.js";
 import manager from "../engine/manager.js";
@@ -6,9 +6,10 @@ import { redis } from "../redis/redis.js";
 import { broadcastFun } from "../index.js";
 import mongoose from "mongoose";
 
-/* ----------------------------------------------------
-   PLACE LAYER (LAY ORDER)
------------------------------------------------------ */
+
+
+
+
 export const placeLayer = async (marketId, layerId, stake, odds) => {
   stake = Number(stake);
   odds = Number(odds);
@@ -16,14 +17,16 @@ export const placeLayer = async (marketId, layerId, stake, odds) => {
   if (!stake || stake <= 0) throw new Error("Stake must be > 0");
   if (!odds || odds <= 1) throw new Error("Odds must be > 1");
 
-  // wallet existence
+  
   let balance = await redis.hGet(`user:${layerId}`, "balance");
   if (!balance) {
     balance = 1000;
     await redis.hSet(`user:${layerId}`, { balance, locked: 0 });
   }
 
-  // engine user
+  
+
+
   manager.addUserToMarket(marketId, layerId, Number(balance));
   const market = manager.getMarket(marketId);
 
@@ -38,9 +41,9 @@ export const placeLayer = async (marketId, layerId, stake, odds) => {
 
   const offerId = offerDoc._id.toString();
 
-  /* ------------------------------
-        ENGINE ORDERBOOK
-  ------------------------------- */
+
+
+
   if (!market.orderbook.has(odds)) {
     market.orderbook.set(odds, []);
     market.sortedOdds.push(odds);
@@ -57,9 +60,7 @@ export const placeLayer = async (marketId, layerId, stake, odds) => {
   const liability = (odds - 1) * stake;
   market.liability += liability;
 
-  /* ------------------------------
-        REDIS UPDATES
-  ------------------------------- */
+  
   await redis.zAdd(`market:${marketId}:odds`, [
     { score: odds, value: String(odds) },
   ]);
@@ -80,9 +81,7 @@ export const placeLayer = async (marketId, layerId, stake, odds) => {
 
   await redis.incrByFloat(`market:${marketId}:liability`, liability);
 
-  /* ------------------------------
-       BROADCAST TO FRONTEND
-------------------------------- */
+  
 const obEv = {
   type: "orderbook:update",
   marketId,
@@ -102,16 +101,15 @@ broadcastFun(walletEv);
   return { message: "Layer placed", offerId };
 };
 
-/* ----------------------------------------------------
-   PLACE BACK (BACK ORDER)
------------------------------------------------------ */
+
+
+
+
 export const placeBack = async (marketId, backerId, stake) => {
   stake = Number(stake);
   if (!stake || stake <= 0) throw new Error("Stake must be > 0");
 
-  /* ------------------------------
-        Ensure wallet exists
-  ------------------------------- */
+  
   let wallet = await redis.hGetAll(`user:${backerId}`);
   if (!wallet || Object.keys(wallet).length === 0) {
     await redis.hSet(`user:${backerId}`, { balance: 1000, locked: 0 });
@@ -121,9 +119,7 @@ export const placeBack = async (marketId, backerId, stake) => {
   manager.addUserToMarket(marketId, backerId, Number(wallet.balance));
   const market = manager.getMarket(marketId);
 
-  /* ------------------------------
-        REBUILD ORDERBOOK
-  ------------------------------- */
+  
   const sortedOdds = await redis.zRange(`market:${marketId}:odds`, 0, -1, {
     REV: true,
   });
@@ -153,9 +149,7 @@ export const placeBack = async (marketId, backerId, stake) => {
 
   market.sortedOdds.sort((a, b) => b - a);
 
-  /* ------------------------------
-        ENSURE ALL LAYERS EXIST
-  ------------------------------- */
+  
   for (const bucket of market.orderbook.values()) {
     for (const o of bucket) {
       if (!market.users.has(o.layerId)) {
@@ -166,9 +160,7 @@ export const placeBack = async (marketId, backerId, stake) => {
     }
   }
 
-  /* ------------------------------
-        LOCK backer stake
-  ------------------------------- */
+  
   const backer = market.users.get(backerId);
   if (!backer) throw new Error("Backer not in market");
 
@@ -179,9 +171,7 @@ export const placeBack = async (marketId, backerId, stake) => {
     locked: backer.locked,
   });
 
-  /* ------------------------------
-        MATCHING LOOP
-  ------------------------------- */
+  
   let remaining = stake;
   const matches = [];
   const consumedIDs = new Set();
@@ -196,9 +186,7 @@ export const placeBack = async (marketId, backerId, stake) => {
       const offer = bucket[i];
       const take = Math.min(offer.remaining, remaining);
 
-      /* --------------------------
-            RECORD MATCH
-      --------------------------- */
+      
       matches.push({
         backerId,
         layerId: offer.layerId,
@@ -206,15 +194,11 @@ export const placeBack = async (marketId, backerId, stake) => {
         odds,
       });
 
-      /* --------------------------
-            UPDATE OFFER
-      --------------------------- */
+      
       offer.remaining -= take;
       remaining -= take;
 
-      /* --------------------------
-            UPDATE LAYER LOCKED
-      --------------------------- */
+      
       const liabUsed = (odds - 1) * take;
       const layer = market.users.get(offer.layerId);
       layer.consume(liabUsed);
@@ -225,9 +209,7 @@ export const placeBack = async (marketId, backerId, stake) => {
         -liabUsed
       );
 
-      /* --------------------------
-            MARKET LIABILITY
-      --------------------------- */
+      
       market.liability -= liabUsed;
       await redis.incrByFloat(
         `market:${marketId}:liability`,
@@ -242,9 +224,7 @@ export const placeBack = async (marketId, backerId, stake) => {
     }
   }
 
-  /* ------------------------------
-        IF NO MATCHES → Fail
-  ------------------------------- */
+  
   if (matches.length === 0) {
     backer.release(stake);
     await redis.hSet(`user:${backerId}`, {
@@ -254,9 +234,7 @@ export const placeBack = async (marketId, backerId, stake) => {
     throw new Error("No liquidity available");
   }
 
-  /* ------------------------------
-        SAVE MATCHES IN MONGO
-  ------------------------------- */
+  
   await Match.insertMany(
     matches.map((m) => ({
       marketId,
@@ -265,9 +243,7 @@ export const placeBack = async (marketId, backerId, stake) => {
     }))
   );
 
-  /* ------------------------------
-        UPDATE REDIS ORDERBOOK
-  ------------------------------- */
+  
   for (const [odds, bucket] of market.orderbook.entries()) {
     const key = `market:${marketId}:bucket:${odds}`;
     await redis.del(key);
@@ -290,10 +266,8 @@ export const placeBack = async (marketId, backerId, stake) => {
     );
   }
 
-  /* ------------------------------
-        UPDATE MONGO OFFER.remaining
-  ------------------------------- */
-  // present offers
+  
+  
   for (const bucket of market.orderbook.values()) {
     for (const o of bucket) {
       await Offer.updateOne(
@@ -303,16 +277,13 @@ export const placeBack = async (marketId, backerId, stake) => {
     }
   }
 
-  // consumed offers set remaining:0
+  
 if (consumedIDs.size > 0) {
   const ids = Array.from(consumedIDs).map(id => new mongoose.Types.ObjectId(id));
   await Offer.updateMany({ _id: { $in: ids } }, { $set: { remaining: 0 } }).exec();
 }
 
 
-  /* ------------------------------
-        SYNC BALANCES
-  ------------------------------- */
   await redis.hSet(`user:${backerId}`, {
     balance: backer.balance,
     locked: backer.locked,
@@ -332,12 +303,7 @@ if (consumedIDs.size > 0) {
     }
   }
 
-  /* ------------------------------
-        BROADCAST
-  ------------------------------- */
-  /* --------------------------------
-   ORDERBOOK UPDATED
---------------------------------- */
+  
 const obEv = {
   type: "orderbook:update",
   marketId,
@@ -346,9 +312,7 @@ const obEv = {
 await redis.publish("orderbook-update", JSON.stringify(obEv));
 broadcastFun(obEv);
 
-/* --------------------------------
-   WALLET UPDATES
---------------------------------- */
+
 const changed = new Set(matches.map(m => m.backerId).concat(matches.map(m => m.layerId)));
 
 for (const uid of changed) {

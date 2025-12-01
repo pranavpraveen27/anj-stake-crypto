@@ -1,23 +1,13 @@
-// src/engine/hydrate.js
+
 import manager from "./manager.js";
 import { redis } from "../redis/redis.js";
 
-/**
- * Hydrates engine for provided market IDs from Redis state.
- * Should be called:
- * - server startup
- * - engine-cmd: hydrate
- * - after settlement
- */
 export async function hydrateMarkets(marketIds = []) {
   if (!marketIds || marketIds.length === 0) return;
 
   for (const marketId of marketIds) {
     const market = manager.getMarket(marketId);
 
-    /* -------------------------------
-          LOAD ORDERBOOK
-    -------------------------------- */
     const oddsList = await redis.zRange(`market:${marketId}:odds`, 0, -1, {
       REV: true,
     });
@@ -52,9 +42,6 @@ export async function hydrateMarkets(marketIds = []) {
 
     market.sortedOdds.sort((a, b) => b - a);
 
-    /* -------------------------------
-          LOAD LIABILITY
-    -------------------------------- */
     const liab = await redis.get(`market:${marketId}:liability`);
     if (liab !== null) {
       market.liability = Number(liab);
